@@ -5,7 +5,10 @@ CLI tool built with Cobra.
 ## Usage
 
 ```bash
-go run main.go app add rider  "C:\Work\Ebsco\MM.Tools.DeviceTools\MM.Tools.DeviceTools.sln" 
+# Windows
+go run main.go app add rider  "C:\path\to\project.sln"
+# Linux
+go run main.go app add rider  "/path/to/project.sln"
 ```
 
 ```bash

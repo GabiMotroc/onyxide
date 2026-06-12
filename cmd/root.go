@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"runtime"
 
 	"github.com/spf13/cobra"
 
@@ -15,7 +16,18 @@ import (
 )
 
 func open(cmd *cobra.Command, args []string) {
-	command := exec.Command("cmd", "/c", "echo", args[0])
+	var command *exec.Cmd
+
+	if len(args) == 0 {
+		return
+	}
+
+	if isWindows() {
+		command = exec.Command("cmd", "/c", "echo", args[0])
+	} else {
+		command = exec.Command("echo", args[0])
+	}
+
 	stdout, err := command.Output()
 
 	if err != nil {
@@ -23,7 +35,6 @@ func open(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	// Print the output
 	fmt.Println(string(stdout))
 }
 
@@ -45,6 +56,10 @@ func Execute() {
 	if err != nil {
 		os.Exit(1)
 	}
+}
+
+func isWindows() bool {
+	return runtime.GOOS == "windows"
 }
 
 func init() {

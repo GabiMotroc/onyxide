@@ -1,4 +1,6 @@
 .idea/
+/OpenCli
+/OpenCli.exe
 *.exe
 *.exe~
 *.dll
