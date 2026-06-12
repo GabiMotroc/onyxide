@@ -27,7 +27,7 @@ var addCmd = &cobra.Command{
 	Use:   "add",
 	Short: "Add a new project",
 	Long:  "Add a project with the given name.",
-	Args:  cobra.MaximumNArgs(1),
+	Args:  cobra.MaximumNArgs(2),
 	RunE:  projAdd,
 }
 

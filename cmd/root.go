@@ -1,13 +1,12 @@
-/*
-Copyright © 2026 NAME HERE <EMAIL ADDRESS>
-*/
 package cmd
 
 import (
+	"OpenCli/data"
 	"fmt"
 	"os"
 	"os/exec"
 	"runtime"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -15,38 +14,59 @@ import (
 	"OpenCli/cmd/projCommands"
 )
 
-func open(cmd *cobra.Command, args []string) {
-	var command *exec.Cmd
+func open(cmd *cobra.Command, args []string) error {
 
 	if len(args) == 0 {
-		return
+		return fmt.Errorf("no arguments provided")
 	}
 
-	if isWindows() {
-		command = exec.Command("cmd", "/c", "echo", args[0])
-	} else {
-		command = exec.Command("echo", args[0])
+	projects, err := data.LoadProjects()
+	if err != nil {
+		return err
 	}
 
-	stdout, err := command.Output()
+	var foundProj data.Project
+	for _, project := range projects {
+		if strings.Contains(
+			strings.ToLower(project.Location),
+			strings.ToLower(args[0]),
+		) {
+			fmt.Printf("opening %s using %s", project.Location, project.AppType)
+			foundProj = project
+			break
+		}
+	}
+
+	command := executeCommand(foundProj.AppType, foundProj.Location)
+
+	err = command.Start()
 
 	if err != nil {
-		fmt.Println(err.Error())
-		return
+		return err
 	}
 
-	fmt.Println(string(stdout))
+	//fmt.Println(string(stdout))
+	return nil
 }
 
-// RootCmd represents the base command when called without any subcommands
+func executeCommand(app string, location string) *exec.Cmd {
+	var command *exec.Cmd
+	if isWindows() {
+		command = exec.Command("cmd", "/c", app, location)
+	} else {
+		command = exec.Command(app, location)
+	}
+	return command
+}
+
 var RootCmd = &cobra.Command{
 	Use:   "o",
 	Short: "OpenCli - manage apps and projects",
 	Long:  `OpenCli is a CLI tool for managing apps and projects.`,
-	Args:  cobra.ArbitraryArgs,
+	Args:  cobra.ExactArgs(1),
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
-	Run: open,
+	RunE: open,
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
