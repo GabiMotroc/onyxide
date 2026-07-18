@@ -13,7 +13,7 @@ func appAdd(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("error loading apps: %v", err)
 	}
 
-	items = append(items, data.App{Name: args[0], Location: args[1]})
+	items = append(items, data.App{Name: args[0]})
 
 	err = data.SaveApps(items)
 

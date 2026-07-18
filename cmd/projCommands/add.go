@@ -9,6 +9,10 @@ import (
 )
 
 func projAdd(cmd *cobra.Command, args []string) error {
+	return AddProject(args[0], args[1])
+}
+
+func AddProject(app string, location string) error {
 	items, err := data.LoadProjects()
 	if err != nil {
 		return fmt.Errorf("error loading projects: %v", err)
@@ -16,7 +20,7 @@ func projAdd(cmd *cobra.Command, args []string) error {
 
 	dir, err := os.Getwd()
 	fmt.Println(dir)
-	items = append(items, data.Project{AppType: args[0], Location: args[1]})
+	items = append(items, data.Project{AppType: app, Location: location})
 
 	err = data.SaveProjects(items)
 
