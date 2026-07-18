@@ -18,7 +18,7 @@ func appList(cmd *cobra.Command, args []string) {
 	w.Init(cmd.OutOrStdout(), 0, 8, 2, ' ', 0)
 	fmt.Fprintln(w, "NAME\tLOCATION")
 	for _, item := range items {
-		fmt.Fprintf(w, "%s\t%s\n", item.Name, item.Location)
+		fmt.Fprintf(w, "%s\t%s\n", item.Name)
 	}
 	w.Flush()
 }

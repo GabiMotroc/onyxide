@@ -7,8 +7,7 @@ import (
 )
 
 type App struct {
-	Name     string `json:"name"`
-	Location string `json:"location"`
+	Name string `json:"name"`
 }
 
 func appLocation() string {

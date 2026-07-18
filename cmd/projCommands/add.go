@@ -11,6 +11,10 @@ import (
 )
 
 func projAdd(cmd *cobra.Command, args []string) error {
+	return AddProject(args[0], args[1])
+}
+
+func AddProject(app string, location string) error {
 	items, err := data.LoadProjects()
 	if err != nil {
 		if !strings.Contains(err.Error(), "The system cannot find the file specified") {

@@ -85,6 +85,9 @@ func isWindows() bool {
 func init() {
 	RootCmd.AddCommand(appCommands.AppCmd)
 	RootCmd.AddCommand(projCommands.ProjCmd)
+	//RootCmd.AddCommand(HookCmd)
+	//RootCmd.AddCommand(InitCmd)
+	//RootCmd.AddCommand(UninitCmd)
 
 	RootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
