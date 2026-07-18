@@ -3,9 +3,12 @@
 import (
 	"encoding/json"
 	"os"
+	"path/filepath"
 )
 
-var projectLocation = "persistent/projects.json"
+func projectLocation() string {
+	return filepath.Join(getDataDir(), "projects.json")
+}
 
 type Project struct {
 	AppType  string `json:"apptype"`
@@ -18,7 +21,12 @@ func SaveProjects(apps []Project) error {
 		return err
 	}
 
-	err = os.WriteFile(projectLocation, bytes, 0644)
+	err = os.MkdirAll(filepath.Dir(projectLocation()), 0755)
+	if err != nil {
+		return err
+	}
+
+	err = os.WriteFile(projectLocation(), bytes, 0644)
 	if err != nil {
 		return err
 	}
@@ -27,7 +35,10 @@ func SaveProjects(apps []Project) error {
 }
 
 func LoadProjects() ([]Project, error) {
-	bytes, err := os.ReadFile(projectLocation)
+	bytes, err := os.ReadFile(projectLocation())
+	if os.IsNotExist(err) {
+		return []Project{}, nil
+	}
 	if err != nil {
 		return nil, err
 	}

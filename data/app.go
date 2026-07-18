@@ -3,6 +3,7 @@
 import (
 	"encoding/json"
 	"os"
+	"path/filepath"
 )
 
 type App struct {
@@ -10,7 +11,9 @@ type App struct {
 	Location string `json:"location"`
 }
 
-var appLocation = "persistent/apps.json"
+func appLocation() string {
+	return filepath.Join(getDataDir(), "apps.json")
+}
 
 func SaveApps(apps []App) error {
 	bytes, err := json.MarshalIndent(apps, "", "  ")
@@ -18,7 +21,12 @@ func SaveApps(apps []App) error {
 		return err
 	}
 
-	err = os.WriteFile(appLocation, bytes, 0644)
+	err = os.MkdirAll(filepath.Dir(appLocation()), 0755)
+	if err != nil {
+		return err
+	}
+
+	err = os.WriteFile(appLocation(), bytes, 0644)
 	if err != nil {
 		return err
 	}
@@ -27,7 +35,7 @@ func SaveApps(apps []App) error {
 }
 
 func LoadApps() ([]App, error) {
-	bytes, err := os.ReadFile(appLocation)
+	bytes, err := os.ReadFile(appLocation())
 	if err != nil {
 		return nil, err
 	}
