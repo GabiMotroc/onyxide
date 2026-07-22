@@ -30,6 +30,8 @@ func init() {
 }
 
 const zshInitScript = `
+alias o='onyxide'
+
 autoload -Uz add-zsh-hook
 
 _mycli_preexec() {
@@ -39,7 +41,7 @@ _mycli_preexec() {
 
 _mycli_precmd() {
   if [[ -n "$MYCLI_LAST_CMD" ]]; then
-    command o hook --pwd "$MYCLI_LAST_PWD" --raw "$MYCLI_LAST_CMD"
+    command onyxide hook --pwd "$MYCLI_LAST_PWD" --raw "$MYCLI_LAST_CMD"
     unset MYCLI_LAST_CMD
     unset MYCLI_LAST_PWD
   fi

@@ -1,11 +1,10 @@
 package projCommands
 
 import (
-	"OpenCli/data"
 	"fmt"
+	"onyxide/data"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/spf13/cobra"
 )
@@ -16,39 +15,36 @@ func projAdd(cmd *cobra.Command, args []string) error {
 
 func AddProject(app string, location string) error {
 	items, err := data.LoadProjects()
-	if err != nil {
-		if !strings.Contains(err.Error(), "The system cannot find the file specified") {
-			return fmt.Errorf("error loading projects: %v", err)
-		}
+	if err != nil && os.IsNotExist(err) {
+		return fmt.Errorf("error loading projects: %v", err)
 	}
 
-	location, err := getLocation(args)
+	absoluteLocation, err := getLocation(app, location)
 	if err != nil {
 		return err
 	}
 
-	fmt.Println(location)
-	items = append(items, data.Project{AppType: args[0], Location: location})
+	fmt.Println(absoluteLocation)
+	items = append(items, data.Project{AppType: app, Location: absoluteLocation})
 
 	err = data.SaveProjects(items)
 
 	if err != nil {
-		return fmt.Errorf("error saving apps: %v", err)
+		return fmt.Errorf("error saving projects: %v", err)
 	}
 	return nil
 }
 
-func getLocation(args []string) (string, error) {
+func getLocation(app, location string) (string, error) {
 	currentPath, err := os.Getwd()
 	if err != nil {
 		return "", fmt.Errorf("error getting current directory: %v", err)
 	}
 
-	if len(args) == 1 {
+	if len(location) == 0 {
 		return currentPath, nil
 	}
 
-	location := args[1]
 	if filepath.IsAbs(location) {
 		return location, nil
 	}

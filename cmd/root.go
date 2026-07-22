@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"OpenCli/data"
+	"onyxide/data"
 	"fmt"
 	"os"
 	"os/exec"
@@ -10,8 +10,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"OpenCli/cmd/appCommands"
-	"OpenCli/cmd/projCommands"
+	"onyxide/cmd/appCommands"
+	"onyxide/cmd/projCommands"
 )
 
 func open(cmd *cobra.Command, args []string) error {
@@ -61,8 +61,8 @@ func executeCommand(app string, location string) *exec.Cmd {
 
 var RootCmd = &cobra.Command{
 	Use:   "o",
-	Short: "OpenCli - manage apps and projects",
-	Long:  `OpenCli is a CLI tool for managing apps and projects.`,
+	Short: "onyxide - manage apps and projects",
+	Long:  `onyxide is a CLI tool for managing apps and projects.`,
 	Args:  cobra.ExactArgs(1),
 	// Uncomment the following line if your bare application
 	// has an action associated with it:

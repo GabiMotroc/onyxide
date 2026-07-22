@@ -1,4 +1,4 @@
-# OpenCli
+# onyxide
 
 CLI tool built with Cobra.
 

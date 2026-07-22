@@ -1,6 +1,6 @@
 .idea/
-/OpenCli
-/OpenCli.exe
+/onyxide
+/onyxide.exe
 *.exe
 *.exe~
 *.dll

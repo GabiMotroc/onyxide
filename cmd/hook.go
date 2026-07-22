@@ -1,8 +1,8 @@
 package cmd
 
 import (
-	"OpenCli/cmd/projCommands"
-	"OpenCli/data"
+	"onyxide/cmd/projCommands"
+	"onyxide/data"
 	"fmt"
 	"strings"
 

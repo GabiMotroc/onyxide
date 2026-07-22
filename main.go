@@ -3,8 +3,9 @@ Copyright © 2026 NAME HERE <EMAIL ADDRESS>
 */
 package main
 
-import "OpenCli/cmd"
+import "onyxide/cmd"
 
 func main() {
 	cmd.Execute()
 }
+// test

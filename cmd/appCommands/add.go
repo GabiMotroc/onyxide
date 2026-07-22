@@ -1,7 +1,7 @@
 package appCommands
 
 import (
-	"OpenCli/data"
+	"onyxide/data"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -27,7 +27,7 @@ var addCmd = &cobra.Command{
 	Use:   "add <name> <location>",
 	Short: "Add a new app",
 	Long:  "Add an app by name and location.",
-	Args:  cobra.ExactArgs(2),
+	Args:  cobra.ExactArgs(1),
 	RunE:  appAdd,
 }
 

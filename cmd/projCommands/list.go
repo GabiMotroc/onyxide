@@ -1,7 +1,7 @@
 package projCommands
 
 import (
-	"OpenCli/data"
+	"onyxide/data"
 	"fmt"
 	"text/tabwriter"
 

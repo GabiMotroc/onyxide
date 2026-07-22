@@ -1,8 +1,6 @@
 ﻿package data
 
 import (
-	"encoding/json"
-	"os"
 	"path/filepath"
 )
 
@@ -16,38 +14,9 @@ type Project struct {
 }
 
 func SaveProjects(apps []Project) error {
-	bytes, err := json.MarshalIndent(apps, "", "  ")
-	if err != nil {
-		return err
-	}
-
-	err = os.MkdirAll(filepath.Dir(projectLocation()), 0755)
-	if err != nil {
-		return err
-	}
-
-	err = os.WriteFile(projectLocation(), bytes, 0644)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return save(apps, projectLocation())
 }
 
 func LoadProjects() ([]Project, error) {
-	bytes, err := os.ReadFile(projectLocation())
-	if os.IsNotExist(err) {
-		return []Project{}, nil
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	var proj []Project
-	err = json.Unmarshal(bytes, &proj)
-	if err != nil {
-		return nil, err
-	}
-
-	return proj, nil
+	return load[Project](projectLocation())
 }

@@ -1,7 +1,7 @@
 package appCommands
 
 import (
-	"OpenCli/data"
+	"onyxide/data"
 
 	"github.com/spf13/cobra"
 )
