@@ -12,6 +12,9 @@ func initApp(c *cobra.Command, args []string) error {
 	case "zsh":
 		fmt.Print(zshInitScript)
 		return nil
+	case "pwsh":
+		fmt.Print(pwshInitScript)
+		return nil
 	}
 
 	return errors.New("no shell found")
@@ -49,4 +52,15 @@ _mycli_precmd() {
 
 add-zsh-hook preexec _mycli_preexec
 add-zsh-hook precmd _mycli_precmd
+`
+
+// Invoke-Expression (& onyxide init pwsh | Out-String)
+const pwshInitScript = `
+Set-Alias -Name o -Value onyxide
+
+Set-PSReadLineOption -AddToHistoryHandler {
+    param($line)
+    onyxide hook --pwd $PWD.Path --raw $line
+    $true
+}
 `

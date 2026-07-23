@@ -1,8 +1,8 @@
 package cmd
 
 import (
-	"onyxide/data"
 	"fmt"
+	"onyxide/data"
 	"os"
 	"os/exec"
 	"runtime"
@@ -15,38 +15,34 @@ import (
 )
 
 func open(cmd *cobra.Command, args []string) error {
-
-	if len(args) == 0 {
-		return fmt.Errorf("no arguments provided")
-	}
-
 	projects, err := data.LoadProjects()
 	if err != nil {
 		return err
 	}
 
+	needle := strings.ToLower(args[0])
+
+	found := false
 	var foundProj data.Project
 	for _, project := range projects {
 		if strings.Contains(
 			strings.ToLower(project.Location),
-			strings.ToLower(args[0]),
+			needle,
 		) {
-			fmt.Printf("opening %s using %s", project.Location, project.AppType)
 			foundProj = project
+			found = true
 			break
 		}
 	}
 
-	command := executeCommand(foundProj.AppType, foundProj.Location)
-
-	err = command.Start()
-
-	if err != nil {
-		return err
+	if !found {
+		return fmt.Errorf("no project matching %s", args[0])
 	}
 
-	//fmt.Println(string(stdout))
-	return nil
+	fmt.Printf("opening %s using %s", foundProj.Location, foundProj.AppType)
+	command := executeCommand(foundProj.AppType, foundProj.Location)
+
+	return command.Start()
 }
 
 func executeCommand(app string, location string) *exec.Cmd {
@@ -85,9 +81,6 @@ func isWindows() bool {
 func init() {
 	RootCmd.AddCommand(appCommands.AppCmd)
 	RootCmd.AddCommand(projCommands.ProjCmd)
-	//RootCmd.AddCommand(HookCmd)
-	//RootCmd.AddCommand(InitCmd)
-	//RootCmd.AddCommand(UninitCmd)
 
 	RootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }

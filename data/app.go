@@ -2,6 +2,7 @@
 
 import (
 	"path/filepath"
+	"strings"
 )
 
 type App struct {
@@ -18,4 +19,13 @@ func SaveApps(apps []App) error {
 
 func LoadApps() ([]App, error) {
 	return load[App](appLocation())
+}
+
+func ContainsAppName(apps []App, name string) bool {
+	for _, a := range apps {
+		if strings.EqualFold(a.Name, name) {
+			return true
+		}
+	}
+	return false
 }

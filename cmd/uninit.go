@@ -25,6 +25,14 @@ unfunction _mycli_preexec _mycli_precmd 2>/dev/null
 unset MYCLI_LAST_CMD
 `
 
+const pwshUninitScript = `
+# Remove onyxide alias
+Remove-Alias -Name o -ErrorAction SilentlyContinue
+
+# Clear the onyxide history handler (reset to no-op that keeps history)
+Set-PSReadLineOption -AddToHistoryHandler { param($line) $true }
+`
+
 func init() {
 	RootCmd.AddCommand(UninitCmd)
 }

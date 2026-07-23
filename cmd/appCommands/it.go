@@ -3,7 +3,6 @@ package appCommands
 import (
 	"fmt"
 	"onyxide/data"
-	"os"
 
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
@@ -23,9 +22,15 @@ func init() {
 
 func startInteractive(cmd *cobra.Command, args []string) error {
 	p := tea.NewProgram(initialModel())
-	if _, err := p.Run(); err != nil {
-		fmt.Printf("Alas, there's been an error: %v", err)
-		os.Exit(1)
+	m, err := p.Run()
+
+	if err != nil {
+
+		return err
+	}
+
+	if merr := m.(model).err; merr != nil {
+		return merr
 	}
 	return nil
 }
@@ -38,8 +43,9 @@ func initialModel() model {
 	ti.SetWidth(20)
 	ti.SetVirtualCursor(false)
 	return model{
-		apps:  a,
-		input: ti,
+		apps:         a,
+		input:        ti,
+		editingIndex: -1,
 	}
 }
 
@@ -47,86 +53,100 @@ func (m model) Init() tea.Cmd {
 	// Just return `nil`, which means "no I/O right now, please."
 	return nil
 }
-func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	var cmds []tea.Cmd
 
+func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 
 	case tea.KeyPressMsg:
-		if m.inputting {
-			switch msg.String() {
-			case "enter":
-				name := m.input.Value()
-				if name != "" {
-					if m.editingIndex >= 0 {
-						m.apps[m.editingIndex].Name = name
-					} else {
-						m.apps = append(m.apps, data.App{Name: name})
-						m.cursor = len(m.apps) - 1
-					}
-				}
-				m.inputting = false
-				m.editingIndex = -1
-				m.input.SetValue("")
-			case "esc":
-				m.inputting = false
-				m.input.SetValue("")
-			default:
-				var cmd tea.Cmd
-				m.input, cmd = m.input.Update(msg)
-				cmds = append(cmds, cmd)
-			}
-		} else {
-			switch msg.String() {
-
-			case "ctrl+c", "q":
-				return m, tea.Quit
-
-			case "up", "k":
-				if m.cursor > 0 {
-					m.cursor--
-				}
-
-			case "down", "j":
-				if m.cursor < len(m.apps)-1 {
-					m.cursor++
-				}
-
-			case "a":
-				m.inputting = true
-				m.input.SetValue("")
-				cmd := m.input.Focus()
-				cmds = append(cmds, cmd)
-			case "e":
-				if len(m.apps) > 0 {
-					m.inputting = true
-					m.editingIndex = m.cursor
-					m.input.SetValue(m.apps[m.cursor].Name)
-					cmd := m.input.Focus()
-					cmds = append(cmds, cmd)
-				}
-			case "s":
-				err := data.SaveApps(m.apps)
-				if err != nil {
-					return nil, nil
-				}
-				return m, tea.Quit
-
-			case "d":
-				m.apps = append(m.apps[:m.cursor], m.apps[m.cursor+1:]...)
-				if m.cursor > 0 {
-					m.cursor--
-				}
-			}
+		switch m.mode {
+		case modeBrowse:
+			return m.updateBrowser(msg)
+		case modeAdd, modeEdit:
+			return m.updateInput(msg)
 		}
 	}
 
-	// Return the updated model to the Bubble Tea runtime for processing.
-	// Note that we're not returning a command.
+	return m, nil
+}
 
-	//return m, nil
+func (m model) updateBrowser(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
+	switch msg.String() {
 
-	return m, tea.Batch(cmds...)
+	case "ctrl+c", "q":
+		return m, tea.Quit
+
+	case "up", "k":
+		if m.cursor > 0 {
+			m.cursor--
+		}
+
+	case "down", "j":
+		if m.cursor < len(m.apps)-1 {
+			m.cursor++
+		}
+
+	case "a":
+		m.mode = modeAdd
+		m.err = nil
+		m.input.SetValue("")
+		cmd := m.input.Focus()
+		return m, cmd
+
+	case "e":
+		if len(m.apps) > 0 {
+			m.mode = modeEdit
+			m.err = nil
+			m.editingIndex = m.cursor
+			m.input.SetValue(m.apps[m.cursor].Name)
+			cmd := m.input.Focus()
+			return m, cmd
+		}
+
+	case "s":
+		m.err = data.SaveApps(m.apps)
+		return m, tea.Quit
+
+	case "d":
+		if len(m.apps) == 0 {
+			break
+		}
+
+		m.apps = append(m.apps[:m.cursor], m.apps[m.cursor+1:]...)
+		if m.cursor >= len(m.apps) && m.cursor > 0 {
+			m.cursor--
+		}
+	}
+
+	return m, nil
+}
+
+func (m model) updateInput(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
+	switch msg.String() {
+	case "enter":
+		m.err = nil
+		name := m.input.Value()
+		if name != "" {
+			if m.mode == modeEdit {
+				m, m.err = m.editApp(name)
+			} else {
+				m, m.err = m.addApp(name)
+			}
+		}
+		if m.err == nil {
+			m.mode = modeBrowse
+			m.editingIndex = -1
+			m.input.SetValue("")
+		}
+	case "esc":
+		m.mode = modeBrowse
+		m.err = nil
+		m.input.SetValue("")
+	default:
+		var cmd tea.Cmd
+		m.input, cmd = m.input.Update(msg)
+		return m, cmd
+	}
+	return m, nil
 }
 
 func (m model) View() tea.View {
@@ -142,18 +162,50 @@ func (m model) View() tea.View {
 		s += fmt.Sprintf("%d) %s %s\n", i, cursor, app.Name)
 	}
 
-	if m.inputting {
+	switch m.mode {
+	case modeAdd, modeEdit:
+		if m.err != nil {
+			s += "\n" + m.err.Error()
+		}
 		s += "\n" + m.input.View() + "\nenter to confirm, esc to cancel"
-	} else {
+	case modeBrowse:
 		s += "\nPress q to quit. Press a to add. Press s to save. Press d to delete\n"
 	}
 	return tea.NewView(s)
 }
 
+func (m model) addApp(name string) (model, error) {
+	if data.ContainsAppName(m.apps, name) {
+		return m, fmt.Errorf("app with name %s already exists", name)
+	}
+	m.apps = append(m.apps, data.App{Name: name})
+	m.cursor = len(m.apps) - 1
+
+	return m, nil
+}
+
+func (m model) editApp(name string) (model, error) {
+	if data.ContainsAppName(m.apps, name) {
+		return m, fmt.Errorf("app with name %s already exists", name)
+	}
+	m.apps[m.editingIndex].Name = name
+
+	return m, nil
+}
+
+type mode int
+
+const (
+	modeBrowse mode = iota
+	modeAdd
+	modeEdit
+)
+
 type model struct {
 	apps         []data.App
 	cursor       int
 	input        textinput.Model
-	inputting    bool
+	mode         mode
 	editingIndex int
+	err          error
 }

@@ -1,8 +1,8 @@
 package appCommands
 
 import (
-	"onyxide/data"
 	"fmt"
+	"onyxide/data"
 
 	"github.com/spf13/cobra"
 )
@@ -13,6 +13,9 @@ func appAdd(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("error loading apps: %v", err)
 	}
 
+	if data.ContainsAppName(items, args[0]) {
+		return fmt.Errorf("app with name %s already exists", args[0])
+	}
 	items = append(items, data.App{Name: args[0]})
 
 	err = data.SaveApps(items)
@@ -24,9 +27,9 @@ func appAdd(cmd *cobra.Command, args []string) error {
 }
 
 var addCmd = &cobra.Command{
-	Use:   "add <name> <location>",
+	Use:   "add <name>",
 	Short: "Add a new app",
-	Long:  "Add an app by name and location.",
+	Long:  "Add an app by name.",
 	Args:  cobra.ExactArgs(1),
 	RunE:  appAdd,
 }
