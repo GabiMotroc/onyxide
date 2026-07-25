@@ -1,9 +1,9 @@
 package cmd
 
 import (
-	"onyxide/cmd/projCommands"
-	"onyxide/data"
 	"fmt"
+	"onyxide/features/app"
+	"onyxide/features/proj"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -14,7 +14,7 @@ var pwd, raw string
 func hook(c *cobra.Command, args []string) error {
 	fmt.Printf("received pwd=%s raw=%s\n", pwd, raw)
 
-	apps, err := data.LoadApps()
+	apps, err := app.LoadApps()
 	if err != nil {
 		return err
 	}
@@ -29,9 +29,9 @@ func hook(c *cobra.Command, args []string) error {
 
 	triggeredCmd := split[0]
 
-	for _, app := range apps {
-		if triggeredCmd == app.Name {
-			err := projCommands.AddProject(triggeredCmd, split[1])
+	for _, a := range apps {
+		if triggeredCmd == a.Name {
+			err := proj.AddProject(triggeredCmd, split[1])
 			if err != nil {
 				return err
 			}
@@ -52,5 +52,4 @@ var HookCmd = &cobra.Command{
 func init() {
 	HookCmd.Flags().StringVar(&pwd, "pwd", "", "working directory")
 	HookCmd.Flags().StringVar(&raw, "raw", "", "raw command")
-	RootCmd.AddCommand(HookCmd)
 }

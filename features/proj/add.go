@@ -1,8 +1,7 @@
-package projCommands
+package proj
 
 import (
 	"fmt"
-	"onyxide/data"
 	"os"
 	"path/filepath"
 
@@ -14,9 +13,9 @@ func projAdd(cmd *cobra.Command, args []string) error {
 }
 
 func AddProject(app string, location string) error {
-	items, err := data.LoadProjects()
+	items, err := LoadProjects()
 	if err != nil && os.IsNotExist(err) {
-		return fmt.Errorf("error loading projects: %v", err)
+		return fmt.Errorf("error loading projects: %w", err)
 	}
 
 	absoluteLocation, err := getLocation(app, location)
@@ -24,13 +23,12 @@ func AddProject(app string, location string) error {
 		return err
 	}
 
-	fmt.Println(absoluteLocation)
-	items = append(items, data.Project{AppType: app, Location: absoluteLocation})
+	items = append(items, Project{AppType: app, Location: absoluteLocation})
 
-	err = data.SaveProjects(items)
+	err = SaveProjects(items)
 
 	if err != nil {
-		return fmt.Errorf("error saving projects: %v", err)
+		return fmt.Errorf("error saving projects: %w", err)
 	}
 	return nil
 }
@@ -38,7 +36,7 @@ func AddProject(app string, location string) error {
 func getLocation(app, location string) (string, error) {
 	currentPath, err := os.Getwd()
 	if err != nil {
-		return "", fmt.Errorf("error getting current directory: %v", err)
+		return "", fmt.Errorf("error getting current directory: %w", err)
 	}
 
 	if len(location) == 0 {
@@ -58,8 +56,4 @@ var addCmd = &cobra.Command{
 	Long:  "Add a project with the given name.",
 	Args:  cobra.RangeArgs(1, 2),
 	RunE:  projAdd,
-}
-
-func init() {
-	ProjCmd.AddCommand(addCmd)
 }

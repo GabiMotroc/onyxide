@@ -1,24 +1,12 @@
-package appCommands
+package app
 
 import (
 	"fmt"
-	"onyxide/data"
 
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
 	"github.com/spf13/cobra"
 )
-
-var itCmd = &cobra.Command{
-	Use:   "it",
-	Short: "Manage apps",
-	Long:  "Create, list, and manage applications.",
-	RunE:  startInteractive,
-}
-
-func init() {
-	AppCmd.AddCommand(itCmd)
-}
 
 func startInteractive(cmd *cobra.Command, args []string) error {
 	p := tea.NewProgram(initialModel())
@@ -36,7 +24,7 @@ func startInteractive(cmd *cobra.Command, args []string) error {
 }
 
 func initialModel() model {
-	a, _ := data.LoadApps()
+	a, _ := LoadApps()
 
 	ti := textinput.New()
 	ti.CharLimit = 156
@@ -103,7 +91,7 @@ func (m model) updateBrowser(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		}
 
 	case "s":
-		m.err = data.SaveApps(m.apps)
+		m.err = SaveApps(m.apps)
 		return m, tea.Quit
 
 	case "d":
@@ -175,17 +163,17 @@ func (m model) View() tea.View {
 }
 
 func (m model) addApp(name string) (model, error) {
-	if data.ContainsAppName(m.apps, name) {
+	if ContainsAppName(m.apps, name) {
 		return m, fmt.Errorf("app with name %s already exists", name)
 	}
-	m.apps = append(m.apps, data.App{Name: name})
+	m.apps = append(m.apps, App{Name: name})
 	m.cursor = len(m.apps) - 1
 
 	return m, nil
 }
 
 func (m model) editApp(name string) (model, error) {
-	if data.ContainsAppName(m.apps, name) {
+	if ContainsAppName(m.apps, name) {
 		return m, fmt.Errorf("app with name %s already exists", name)
 	}
 	m.apps[m.editingIndex].Name = name
@@ -202,7 +190,7 @@ const (
 )
 
 type model struct {
-	apps         []data.App
+	apps         []App
 	cursor       int
 	input        textinput.Model
 	mode         mode

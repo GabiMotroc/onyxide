@@ -32,7 +32,3 @@ Remove-Alias -Name o -ErrorAction SilentlyContinue
 # Clear the onyxide history handler (reset to no-op that keeps history)
 Set-PSReadLineOption -AddToHistoryHandler { param($line) $true }
 `
-
-func init() {
-	RootCmd.AddCommand(UninitCmd)
-}

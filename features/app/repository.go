@@ -1,24 +1,21 @@
-﻿package data
+package app
 
 import (
+	"onyxide/store"
 	"path/filepath"
 	"strings"
 )
 
-type App struct {
-	Name string `json:"name"`
-}
-
-func appLocation() string {
-	return filepath.Join(getDataDir(), "apps.json")
+func repoPath() string {
+	return filepath.Join(store.DataDir(), "apps.json")
 }
 
 func SaveApps(apps []App) error {
-	return save(apps, appLocation())
+	return store.Save(apps, repoPath())
 }
 
 func LoadApps() ([]App, error) {
-	return load[App](appLocation())
+	return store.Load[App](repoPath())
 }
 
 func ContainsAppName(apps []App, name string) bool {

@@ -28,10 +28,6 @@ var InitCmd = &cobra.Command{
 	RunE:  initApp,
 }
 
-func init() {
-	RootCmd.AddCommand(InitCmd)
-}
-
 const zshInitScript = `
 alias o='onyxide'
 

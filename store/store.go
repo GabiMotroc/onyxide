@@ -1,4 +1,4 @@
-package data
+package store
 
 import (
 	"encoding/json"
@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 )
 
-func getDataDir() string {
+func DataDir() string {
 	base := os.Getenv("APPDATA")
 	if base == "" {
 		base = filepath.Join(os.Getenv("HOME"), ".local", "share")
@@ -31,7 +31,7 @@ func writeToFile(bytes []byte, location string) error {
 	return nil
 }
 
-func load[T any](location string) ([]T, error) {
+func Load[T any](location string) ([]T, error) {
 	bytes, err := os.ReadFile(location)
 	if os.IsNotExist(err) {
 		err := createFile(location)
@@ -53,7 +53,7 @@ func load[T any](location string) ([]T, error) {
 	return items, nil
 }
 
-func save[T any](items []T, location string) error {
+func Save[T any](items []T, location string) error {
 	bytes, err := json.MarshalIndent(items, "", "  ")
 	if err != nil {
 		return err

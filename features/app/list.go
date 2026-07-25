@@ -1,22 +1,21 @@
-package appCommands
+package app
 
 import (
 	"fmt"
-	"onyxide/data"
 	"text/tabwriter"
 
 	"github.com/spf13/cobra"
 )
 
 func appList(cmd *cobra.Command, args []string) error {
-	items, err := data.LoadApps()
+	items, err := LoadApps()
 	if err != nil {
-		return fmt.Errorf("error loading apps: %v", err)
+		return fmt.Errorf("error loading apps: %w", err)
 	}
 
 	w := new(tabwriter.Writer)
 	w.Init(cmd.OutOrStdout(), 0, 8, 2, ' ', 0)
-	fmt.Fprintln(w, "NAME\tLOCATION")
+	fmt.Fprintln(w, "NAME")
 	for _, item := range items {
 		fmt.Fprintf(w, "%s\n", item.Name)
 	}
@@ -28,8 +27,4 @@ var listCmd = &cobra.Command{
 	Short: "List all apps",
 	Long:  "Display all registered apps with their name and location.",
 	RunE:  appList,
-}
-
-func init() {
-	AppCmd.AddCommand(listCmd)
 }
