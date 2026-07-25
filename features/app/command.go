@@ -1,6 +1,8 @@
 package app
 
-import "github.com/spf13/cobra"
+import (
+	"github.com/spf13/cobra"
+)
 
 // Command is the parent "app" subcommand, exported so root.go can attach it.
 var Command = &cobra.Command{
@@ -11,5 +13,5 @@ var Command = &cobra.Command{
 }
 
 func init() {
-	Command.AddCommand(addCmd, listCmd, clearCmd)
+	Command.AddCommand(addCmd, listCmd, clearCmd, removeCmd)
 }

@@ -1,10 +1,14 @@
 package app
 
 import (
-	"fmt"
+	"onyxide/ui"
 
+	"charm.land/bubbles/v2/help"
+	"charm.land/bubbles/v2/key"
+	"charm.land/bubbles/v2/table"
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 	"github.com/spf13/cobra"
 )
 
@@ -13,7 +17,6 @@ func startInteractive(cmd *cobra.Command, args []string) error {
 	m, err := p.Run()
 
 	if err != nil {
-
 		return err
 	}
 
@@ -26,19 +29,34 @@ func startInteractive(cmd *cobra.Command, args []string) error {
 func initialModel() model {
 	a, _ := LoadApps()
 
+	cols := []table.Column{
+		{Title: "#", Width: 4},
+		{Title: "NAME", Width: 20},
+		{Title: "IS_TERMINAL", Width: 12},
+	}
+
+	t := table.New(
+		table.WithColumns(cols),
+		table.WithRows(appToRows(a)),
+		table.WithFocused(true),
+	)
+
 	ti := textinput.New()
 	ti.CharLimit = 156
 	ti.SetWidth(20)
 	ti.SetVirtualCursor(false)
+
 	return model{
 		apps:         a,
+		table:        t,
 		input:        ti,
 		editingIndex: -1,
+		help:         help.New(),
+		keys:         Keys,
 	}
 }
 
 func (m model) Init() tea.Cmd {
-	// Just return `nil`, which means "no I/O right now, please."
 	return nil
 }
 
@@ -52,60 +70,63 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case modeAdd, modeEdit:
 			return m.updateInput(msg)
 		}
+	case tea.WindowSizeMsg:
+		m.table.SetWidth(msg.Width)
+		//m.table.SetHeight(msg.Height - 4) // subtract for help text
 	}
 
 	return m, nil
 }
 
 func (m model) updateBrowser(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
-	switch msg.String() {
+	idx := m.table.Cursor()
 
-	case "ctrl+c", "q":
+	switch {
+	case key.Matches(msg, m.keys.Quit):
 		return m, tea.Quit
-
-	case "up", "k":
-		if m.cursor > 0 {
-			m.cursor--
-		}
-
-	case "down", "j":
-		if m.cursor < len(m.apps)-1 {
-			m.cursor++
-		}
-
-	case "a":
+	case key.Matches(msg, m.keys.Add):
 		m.mode = modeAdd
 		m.err = nil
 		m.input.SetValue("")
 		cmd := m.input.Focus()
 		return m, cmd
 
-	case "e":
+	case key.Matches(msg, m.keys.Edit):
 		if len(m.apps) > 0 {
 			m.mode = modeEdit
 			m.err = nil
-			m.editingIndex = m.cursor
-			m.input.SetValue(m.apps[m.cursor].Name)
+			m.editingIndex = idx
+			m.input.SetValue(m.apps[idx].Name)
 			cmd := m.input.Focus()
 			return m, cmd
 		}
 
-	case "s":
+	case key.Matches(msg, m.keys.Save):
 		m.err = SaveApps(m.apps)
 		return m, tea.Quit
 
-	case "d":
+	case key.Matches(msg, m.keys.Delete):
 		if len(m.apps) == 0 {
 			break
 		}
-
-		m.apps = append(m.apps[:m.cursor], m.apps[m.cursor+1:]...)
-		if m.cursor >= len(m.apps) && m.cursor > 0 {
-			m.cursor--
+		m.apps, _ = RemoveByName(m.apps, m.apps[idx].Name)
+		if idx >= len(m.apps) && idx > 0 {
+			idx--
+			m.table.SetCursor(idx)
 		}
+		m.syncTable()
+
+	case key.Matches(msg, m.keys.ToggleTerminal):
+		if len(m.apps) == 0 {
+			break
+		}
+		m.apps[idx].IsTerminal = !m.apps[idx].IsTerminal
+		m.syncTable()
 	}
 
-	return m, nil
+	var cmd tea.Cmd
+	m.table, cmd = m.table.Update(msg)
+	return m, cmd
 }
 
 func (m model) updateInput(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
@@ -125,6 +146,7 @@ func (m model) updateInput(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 			m.editingIndex = -1
 			m.input.SetValue("")
 		}
+		m.syncTable()
 	case "esc":
 		m.mode = modeBrowse
 		m.err = nil
@@ -138,47 +160,28 @@ func (m model) updateInput(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) View() tea.View {
-	s := "Manage apps\n\n"
-
-	for i, app := range m.apps {
-
-		cursor := " "
-		if m.cursor == i {
-			cursor = ">"
-		}
-
-		s += fmt.Sprintf("%d) %s %s\n", i, cursor, app.Name)
-	}
+	s := m.table.View()
 
 	switch m.mode {
 	case modeAdd, modeEdit:
-		if m.err != nil {
-			s += "\n" + m.err.Error()
+		title := "Add App"
+		if m.mode == modeEdit {
+			title = "Edit App"
 		}
-		s += "\n" + m.input.View() + "\nenter to confirm, esc to cancel"
+
+		content := ui.DialogTitleStyle.Render(title) + "\n" + m.input.View()
+		if m.err != nil {
+			content += "\n" + lipgloss.NewStyle().Foreground(lipgloss.Color("1")).Render(m.err.Error())
+		}
+		content += "\n\nenter to confirm • esc to cancel"
+
+		s := ui.DialogStyle.Render(content)
+		return tea.NewView(s)
+
 	case modeBrowse:
-		s += "\nPress q to quit. Press a to add. Press s to save. Press d to delete\n"
+		s += "\n" + m.help.View(m.keys) + "\n"
 	}
 	return tea.NewView(s)
-}
-
-func (m model) addApp(name string) (model, error) {
-	if ContainsAppName(m.apps, name) {
-		return m, fmt.Errorf("app with name %s already exists", name)
-	}
-	m.apps = append(m.apps, App{Name: name})
-	m.cursor = len(m.apps) - 1
-
-	return m, nil
-}
-
-func (m model) editApp(name string) (model, error) {
-	if ContainsAppName(m.apps, name) {
-		return m, fmt.Errorf("app with name %s already exists", name)
-	}
-	m.apps[m.editingIndex].Name = name
-
-	return m, nil
 }
 
 type mode int
@@ -191,9 +194,11 @@ const (
 
 type model struct {
 	apps         []App
-	cursor       int
+	table        table.Model
 	input        textinput.Model
 	mode         mode
 	editingIndex int
 	err          error
+	help         help.Model
+	keys         KeyMap
 }

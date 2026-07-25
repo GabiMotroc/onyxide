@@ -8,4 +8,3 @@ import "onyxide/cmd"
 func main() {
 	cmd.Execute()
 }
-// test

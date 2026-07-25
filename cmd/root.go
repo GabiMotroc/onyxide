@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"onyxide/cmd/shell"
 	"onyxide/features/app"
 	"onyxide/features/proj"
 	"os"
@@ -29,6 +30,6 @@ func init() {
 	RootCmd.AddCommand(app.Command)
 	RootCmd.AddCommand(proj.Command)
 	RootCmd.AddCommand(HookCmd)
-	RootCmd.AddCommand(InitCmd)
-	RootCmd.AddCommand(UninitCmd)
+	RootCmd.AddCommand(shell.InitCmd)
+	RootCmd.AddCommand(shell.UninitCmd)
 }

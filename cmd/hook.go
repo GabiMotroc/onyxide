@@ -9,21 +9,20 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var pwd, raw string
+var hookedLocation, hookedCmd string
 
 func hook(c *cobra.Command, args []string) error {
-	fmt.Printf("received pwd=%s raw=%s\n", pwd, raw)
+	fmt.Printf("received pwd=%s raw=%s\n", hookedLocation, hookedCmd)
 
 	apps, err := app.LoadApps()
 	if err != nil {
 		return err
 	}
 
-	split := strings.Split(raw, " ")
+	split := strings.Split(hookedCmd, " ")
 
 	if len(split) < 2 {
 		fmt.Printf("received incompatible command")
-		//return fmt.Errorf("invalid command")
 		return nil
 	}
 
@@ -31,11 +30,11 @@ func hook(c *cobra.Command, args []string) error {
 
 	for _, a := range apps {
 		if triggeredCmd == a.Name {
-			err := proj.AddProject(triggeredCmd, split[1])
+			err := proj.AddProject(triggeredCmd, hookedLocation, split[1])
 			if err != nil {
 				return err
 			}
-			fmt.Printf("successfully saved pwd=%s raw=%s\n", pwd, raw)
+			fmt.Printf("successfully saved pwd=%s raw=%s\n", hookedLocation, hookedCmd)
 		}
 	}
 	return nil
@@ -50,6 +49,6 @@ var HookCmd = &cobra.Command{
 }
 
 func init() {
-	HookCmd.Flags().StringVar(&pwd, "pwd", "", "working directory")
-	HookCmd.Flags().StringVar(&raw, "raw", "", "raw command")
+	HookCmd.Flags().StringVar(&hookedLocation, "pwd", "", "working directory")
+	HookCmd.Flags().StringVar(&hookedCmd, "raw", "", "raw command")
 }

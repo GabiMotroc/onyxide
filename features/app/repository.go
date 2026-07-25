@@ -26,3 +26,16 @@ func ContainsAppName(apps []App, name string) bool {
 	}
 	return false
 }
+
+func RemoveByName(apps []App, name string) ([]App, bool) {
+	filtered := make([]App, 0, len(apps))
+	found := false
+	for _, a := range apps {
+		if strings.EqualFold(a.Name, name) {
+			found = true
+			continue
+		}
+		filtered = append(filtered, a)
+	}
+	return filtered, found
+}
