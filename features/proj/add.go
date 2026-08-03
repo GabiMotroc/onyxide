@@ -13,7 +13,12 @@ func projAdd(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("getting current directory: %w", err)
 	}
-	return AddProject(args[0], workDir, args[1])
+
+	location := ""
+	if len(args) > 1 {
+		location = args[1]
+	}
+	return AddProject(args[0], workDir, location)
 
 }
 

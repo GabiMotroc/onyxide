@@ -11,11 +11,6 @@ type KeyMap struct {
 	Edit           key.Binding
 }
 
-func (k KeyMap) FullHelp() [][]key.Binding {
-	//TODO implement me
-	panic("implement me")
-}
-
 var Keys = KeyMap{
 	Quit:           key.NewBinding(key.WithKeys("q", "ctrl+c"), key.WithHelp("q", "quit")),
 	Add:            key.NewBinding(key.WithKeys("a"), key.WithHelp("a", "add")),
@@ -27,4 +22,8 @@ var Keys = KeyMap{
 
 func (k KeyMap) ShortHelp() []key.Binding {
 	return []key.Binding{k.Quit, k.Add, k.Save, k.Delete, k.ToggleTerminal, k.Edit}
+}
+
+func (k KeyMap) FullHelp() [][]key.Binding {
+	return [][]key.Binding{k.ShortHelp()}
 }

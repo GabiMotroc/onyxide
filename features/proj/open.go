@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os/exec"
 	"runtime"
-	"strings"
 
 	"github.com/spf13/cobra"
 )
@@ -15,29 +14,20 @@ func Open(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	needle := strings.ToLower(args[0])
-
-	found := false
-	var foundProj Project
-	for _, project := range projects {
-		if strings.Contains(
-			strings.ToLower(project.Location),
-			needle,
-		) {
-			foundProj = project
-			found = true
-			break
-		}
-	}
+	found, foundProj := FirstMatchingProject(args[0], projects)
 
 	if !found {
 		return fmt.Errorf("no project matching %s", args[0])
 	}
 
-	fmt.Printf("opening %s using %s", foundProj.Location, foundProj.AppType)
-	command := executeCommand(foundProj.AppType, foundProj.Location)
+	fmt.Fprintf(cmd.OutOrStdout(), "opening %s using %s", foundProj.Location, foundProj.AppType)
+	command := openProject(foundProj)
 
 	return command.Start()
+}
+
+func openProject(project Project) *exec.Cmd {
+	return executeCommand(project.AppType, project.Location)
 }
 
 func executeCommand(app string, location string) *exec.Cmd {
