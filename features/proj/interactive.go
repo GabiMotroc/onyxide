@@ -202,6 +202,7 @@ func (m model) updateBrowser(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		if len(m.projects) == 0 {
 			break
 		}
+	
 		p := m.projects[idx]
 		c, terminal := openProject(p)
 		if terminal {
