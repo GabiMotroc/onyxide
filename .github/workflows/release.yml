@@ -1,0 +1,52 @@
+name: Build and Publish Release
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Build Windows (amd64)
+        run: |
+          GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o onyxide.exe .
+
+      - name: Build Linux (amd64)
+        run: |
+          GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o onyxide-linux .
+
+      - name: Generate Release Notes
+        id: notes
+        run: |
+          {
+            echo "**Release built from commit** \`${{ github.sha }}\`"
+            echo ""
+            echo "Artifacts:"
+            echo "- \`onyxide.exe\` — Windows x86_64"
+            echo "- \`onyxide-linux\` — Linux x86_64"
+          } > release_notes.md
+
+      - name: Publish Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: "Latest build (${{ github.run_number }})"
+          body_path: release_notes.md
+          files: |
+            onyxide.exe
+            onyxide-linux
+          fail_on_unmatched_files: true
