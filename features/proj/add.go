@@ -34,14 +34,12 @@ func AddProject(app string, workDir string, location string) error {
 		return err
 	}
 
-	if ContainsLocation(items, absoluteLocation) {
-		return fmt.Errorf("project at %q already exists", absoluteLocation)
+	items, err = appendProject(items, app, absoluteLocation)
+	if err != nil {
+		return err
 	}
 
-	items = append(items, Project{AppType: app, Location: absoluteLocation})
-
 	err = SaveProjects(items)
-
 	if err != nil {
 		return fmt.Errorf("error saving projects: %w", err)
 	}

@@ -2,6 +2,8 @@ package proj
 
 import (
 	"fmt"
+	"onyxide/features/app"
+	"os"
 	"os/exec"
 	"runtime"
 
@@ -21,15 +23,20 @@ func Open(cmd *cobra.Command, args []string) error {
 	}
 
 	fmt.Fprintf(cmd.OutOrStdout(), "opening %s using %s", foundProj.Location, foundProj.AppType)
-	command := openProject(foundProj)
 
+	command, terminal := openProject(foundProj)
+	if terminal {
+		command.Stdin, command.Stdout, command.Stderr = os.Stdin, os.Stdout, os.Stderr
+		return command.Run()
+	}
 	return command.Start()
+
 }
 
-func openProject(project Project) *exec.Cmd {
-	return executeCommand(project.AppType, project.Location)
+func openProject(project Project) (*exec.Cmd, bool) {
+	cmd := executeCommand(project.AppType, project.Location)
+	return cmd, app.IsTerminal(project.AppType)
 }
-
 func executeCommand(app string, location string) *exec.Cmd {
 	var command *exec.Cmd
 	if isWindows() {

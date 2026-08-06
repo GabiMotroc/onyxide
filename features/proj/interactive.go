@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"onyxide/features/app"
 	"onyxide/ui"
+	"os"
 
 	"charm.land/bubbles/v2/help"
 	"charm.land/bubbles/v2/key"
@@ -37,16 +38,26 @@ func initialModel() model {
 		{Title: "LOCATION", Width: 45},
 	}
 
+	styles := table.DefaultStyles()
+	styles.Selected = ui.SelectedStyle
 	t := table.New(
 		table.WithColumns(cols),
 		table.WithRows(toRows(a)),
+		table.WithStyles(styles),
 		table.WithFocused(true),
 	)
 
 	ti := textinput.New()
-	ti.CharLimit = 156
-	ti.SetWidth(20)
+	ti.Prompt = ""
+	ti.CharLimit = 1024
+	ti.SetWidth(60)
 	ti.SetVirtualCursor(false)
+
+	apps, _ := app.LoadApps()
+	appNames := make([]string, len(apps))
+	for i, a := range apps {
+		appNames[i] = a.Name
+	}
 
 	return model{
 		projects:     a,
@@ -55,6 +66,7 @@ func initialModel() model {
 		editingIndex: -1,
 		help:         help.New(),
 		keys:         Keys,
+		picker:       ui.NewPicker(appNames),
 	}
 }
 
@@ -69,18 +81,72 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch m.mode {
 		case modeBrowse:
 			return m.updateBrowser(msg)
-		case modeAdd:
-			return m.updatePicker(msg)
-		case
-			modeEdit:
-			return m.updateInput(msg)
+		case modeAdd, modeEdit:
+			return m.updateForm(msg)
 		}
 	case tea.WindowSizeMsg:
 		m.table.SetWidth(msg.Width)
-		//m.table.SetHeight(msg.Height - 4) // subtract for help text
 	}
 
 	return m, nil
+}
+
+func (m model) updateForm(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
+	switch {
+	case key.Matches(msg, m.keys.Next):
+		if m.input.Focused() {
+			m.input.Blur()
+			return m, nil
+		}
+		cmd := m.input.Focus()
+		return m, cmd
+
+	case key.Matches(msg, m.keys.Back):
+		return m.exitForm(), nil
+
+	case key.Matches(msg, m.keys.Confirm):
+		if !m.input.Focused() {
+			cmd := m.input.Focus()
+			return m, cmd
+		}
+		m.err = nil
+		appType := m.picker.SelectedItem()
+		loc := m.input.Value()
+		if !pathExists(loc) {
+			m.err = fmt.Errorf("location %q does not exist", loc)
+			return m, nil
+		}
+		if m.mode == modeEdit {
+			m.projects[m.editingIndex].AppType = appType
+			m.projects[m.editingIndex].Location = loc
+			return m.exitForm(), nil
+		}
+
+		m.projects, m.err = appendProject(m.projects, appType, loc)
+		if m.err != nil {
+			return m, nil
+		}
+
+		return m.exitForm(), nil
+	}
+
+	if !m.input.Focused() {
+		var cmd tea.Cmd
+		m.picker, cmd = m.picker.Update(msg)
+		return m, cmd
+	}
+
+	var cmd tea.Cmd
+	m.input, cmd = m.input.Update(msg)
+	return m, cmd
+}
+
+func (m model) exitForm() model {
+	m.mode = modeBrowse
+	m.editingIndex = -1
+	m.input.SetValue("")
+	m.input.Blur()
+	return m.syncTable()
 }
 
 func (m model) updateBrowser(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
@@ -89,29 +155,34 @@ func (m model) updateBrowser(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	switch {
 	case key.Matches(msg, m.keys.Quit):
 		return m, tea.Quit
+	case key.Matches(msg, m.keys.Back):
+		return m, tea.Quit
 	case key.Matches(msg, m.keys.Add):
-		apps, _ := app.LoadApps()
+		apps := m.picker.Items
 		if len(apps) == 0 {
 			m.err = fmt.Errorf("no apps registered — run onyxide app first")
 			return m, nil
 		}
-		names := make([]string, len(apps))
-		for i, a := range apps {
-			names[i] = a.Name
-		}
-		m.picker = ui.NewPicker("Select app", names)
 		m.mode = modeAdd
 		return m, nil
 
 	case key.Matches(msg, m.keys.Edit):
-		//if len(m.projects) > 0 {
-		//	m.mode = modeEdit
-		//	m.err = nil
-		//	m.editingIndex = idx
-		//m.input.SetValue(m.projects[idx])
-		//cmd := m.input.Focus()
-		//	return m, cmd
-		//}
+		if len(m.projects) > 0 {
+			m.mode = modeEdit
+			m.err = nil
+			m.editingIndex = idx
+			m.input.SetValue(m.projects[idx].Location)
+			selected := 0
+			for i, a := range m.picker.Items {
+				if m.projects[idx].AppType == a {
+					selected = i
+					break
+				}
+			}
+			m.picker.Selected = selected
+			m.input.Blur()
+			return m, nil
+		}
 
 	case key.Matches(msg, m.keys.Save):
 		m.err = SaveProjects(m.projects)
@@ -126,15 +197,20 @@ func (m model) updateBrowser(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 			idx--
 			m.table.SetCursor(idx)
 		}
-		m.syncTable()
+		return m.syncTable(), nil
 	case key.Matches(msg, m.keys.Open):
 		if len(m.projects) == 0 {
 			break
 		}
 		p := m.projects[idx]
-		if err := openProject(p).Start(); err != nil {
+		c, terminal := openProject(p)
+		if terminal {
+			return m, tea.ExecProcess(c, nil)
+		}
+		if err := c.Start(); err != nil {
 			m.err = err
 		}
+
 	}
 
 	var cmd tea.Cmd
@@ -142,78 +218,41 @@ func (m model) updateBrowser(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
-func (m model) updateInput(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
-	switch msg.String() {
-	case "enter":
-		//m.err = nil
-		//name := m.input.Value()
-		//if name != "" {
-		//	if m.mode == modeEdit {
-		//		m, m.err = m.editApp(name)
-		//	} else {
-		//		m, m.err = m.addApp(name)
-		//	}
-		//}
-		//if m.err == nil {
-		//	m.mode = modeBrowse
-		//	m.editingIndex = -1
-		//	m.input.SetValue("")
-		//}
-		m.syncTable()
-	case "esc":
-		m.mode = modeBrowse
-		m.err = nil
-		m.input.SetValue("")
-	default:
-		var cmd tea.Cmd
-		m.input, cmd = m.input.Update(msg)
-		return m, cmd
-	}
-	return m, nil
-}
-
 func (m model) View() tea.View {
 	s := m.table.View()
 
 	switch m.mode {
-	case modeAdd:
-		return tea.NewView(m.picker.View())
-
-	case modeEdit:
-		title := "Add App"
+	case modeAdd, modeEdit:
+		title := "Add Project"
 		if m.mode == modeEdit {
-			title = "Edit App"
+			title = "Edit Project"
+		}
+		isLocFocused := m.input.Focused()
+		appTitle, locTitle := ui.SelectedStyle, ui.SelectedStyle
+		if !isLocFocused {
+			locTitle = ui.UnselectedStyle
+		} else {
+			appTitle = ui.UnselectedStyle
 		}
 
-		content := ui.DialogTitleStyle.Render(title) + "\n" + m.input.View()
+		content := ui.DialogTitleStyle.Render(title) + "\n" +
+			appTitle.Render("App type:") + "\n" + m.picker.List() + "\n" +
+			locTitle.Render("Location:") + "\n" + m.input.View()
+
 		if m.err != nil {
 			content += "\n" + lipgloss.NewStyle().Foreground(lipgloss.Color("1")).Render(m.err.Error())
 		}
-		content += "\n\nenter to confirm • esc to cancel"
-
-		s := ui.DialogStyle.Render(content)
-		return tea.NewView(s)
+		content += "\n\n" + m.help.ShortHelpView([]key.Binding{
+			m.keys.Next,
+			m.keys.Confirm,
+			m.keys.Back,
+		})
+		return tea.NewView(ui.DialogStyle.Render(content))
 
 	case modeBrowse:
 		s += "\n" + m.help.View(m.keys) + "\n"
 	}
 	return tea.NewView(s)
-}
-
-func (m model) updatePicker(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
-	switch msg.String() {
-	case "enter":
-		m.pendingApp = m.picker.SelectedItem()
-		// TODO: switch to the location-input step
-		return m, nil
-	case "esc":
-		m.mode = modeBrowse
-		m.err = nil
-		return m, nil
-	}
-	var cmd tea.Cmd
-	m.picker, cmd = m.picker.Update(msg)
-	return m, cmd
 }
 
 type mode int
@@ -234,5 +273,9 @@ type model struct {
 	help         help.Model
 	keys         KeyMap
 	picker       ui.Picker
-	pendingApp   string
+}
+
+func pathExists(path string) bool {
+	_, err := os.Stat(path)
+	return err == nil
 }

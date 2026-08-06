@@ -26,7 +26,15 @@ func ContainsAppName(apps []App, name string) bool {
 	}
 	return false
 }
-
+func IsTerminal(name string) bool {
+	apps, _ := LoadApps()
+	for _, a := range apps {
+		if strings.EqualFold(a.Name, name) {
+			return a.IsTerminal
+		}
+	}
+	return false
+}
 func RemoveByName(apps []App, name string) ([]App, bool) {
 	filtered := make([]App, 0, len(apps))
 	found := false

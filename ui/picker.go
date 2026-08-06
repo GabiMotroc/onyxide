@@ -5,13 +5,12 @@ import "strings"
 import tea "charm.land/bubbletea/v2"
 
 type Picker struct {
-	Title    string
 	Items    []string
 	Selected int
 }
 
-func NewPicker(title string, items []string) Picker {
-	return Picker{Title: title, Items: items}
+func NewPicker(items []string) Picker {
+	return Picker{Items: items}
 }
 
 func (p Picker) SelectedItem() string {
@@ -43,9 +42,8 @@ func (p Picker) Update(msg tea.Msg) (Picker, tea.Cmd) {
 	return p, nil
 }
 
-func (p Picker) View() string {
+func (p Picker) List() string {
 	var s strings.Builder
-	s.WriteString(DialogTitleStyle.Render(p.Title) + "\n")
 	for i, item := range p.Items {
 		marker := "  "
 		if i == p.Selected {
@@ -53,5 +51,5 @@ func (p Picker) View() string {
 		}
 		s.WriteString(marker + item + "\n")
 	}
-	return DialogStyle.Render(s.String())
+	return s.String()
 }

@@ -14,25 +14,20 @@ func toRows(projects []Project) []table.Row {
 	return rows
 }
 
-//func (m model) addApp(name string) (model, error) {
-//	if ContainsLocation(m.apps, name) {
-//		return m, fmt.Errorf("app with name %s already exists", name)
-//	}
-//	m.apps = append(m.apps, App{Name: name})
-//	m.syncTable()
-//
-//	return m, nil
-//}
-
-//func (m model) editApp(name string) (model, error) {
-//	if ContainsAppName(m.apps, name) {
-//		return m, fmt.Errorf("app with name %s already exists", name)
-//	}
-//	m.apps[m.editingIndex].Name = name
-//
-//	return m, nil
-//}
-
-func (m *model) syncTable() {
+func (m model) syncTable() model {
 	m.table.SetRows(toRows(m.projects))
+	return m
+}
+
+func appendProject(projects []Project, appType string, loc string) ([]Project, error) {
+
+	if ContainsLocation(projects, loc) {
+		return projects, fmt.Errorf("project at %q already exists", loc)
+	}
+
+	projects = append(projects, Project{
+		AppType:  appType,
+		Location: loc,
+	})
+	return projects, nil
 }

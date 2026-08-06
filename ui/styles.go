@@ -13,6 +13,11 @@ var (
 				Bold(true).
 				Foreground(lipgloss.Color("62")).
 				MarginBottom(1)
+
+	Accent = lipgloss.Color("212")
+
+	SelectedStyle   = lipgloss.NewStyle().Bold(true).Foreground(Accent)
+	UnselectedStyle = lipgloss.NewStyle()
 )
 
 func BoolIcon(b bool) string {
