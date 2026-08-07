@@ -36,4 +36,5 @@ func (m model) editApp(name string) (model, error) {
 
 func (m *model) syncTable() {
 	m.table.SetRows(appToRows(m.apps))
+	m.dirty = true
 }

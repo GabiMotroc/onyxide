@@ -13,7 +13,10 @@ import (
 )
 
 func startInteractive(cmd *cobra.Command, args []string) error {
-	p := tea.NewProgram(initialModel())
+	p := tea.NewProgram(initialModel(),
+		tea.WithInput(cmd.InOrStdin()),
+		tea.WithOutput(cmd.OutOrStdout()),
+	)
 	m, err := p.Run()
 
 	if err != nil {
@@ -69,6 +72,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m.updateBrowser(msg)
 		case modeAdd, modeEdit:
 			return m.updateInput(msg)
+		case modeConfirm:
+			return m.updateConfirm(msg)
 		}
 	case tea.WindowSizeMsg:
 		m.table.SetWidth(msg.Width)
@@ -82,7 +87,11 @@ func (m model) updateBrowser(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	idx := m.table.Cursor()
 
 	switch {
-	case key.Matches(msg, m.keys.Quit):
+	case key.Matches(msg, m.keys.Quit), key.Matches(msg, m.keys.Back):
+		if m.dirty {
+			m.mode = modeConfirm
+			return m, nil
+		}
 		return m, tea.Quit
 	case key.Matches(msg, m.keys.Add):
 		m.mode = modeAdd
@@ -140,13 +149,17 @@ func (m model) updateInput(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 			} else {
 				m, m.err = m.addApp(name)
 			}
-		}
-		if m.err == nil {
+			if m.err == nil {
+				m.mode = modeBrowse
+				m.editingIndex = -1
+				m.input.SetValue("")
+				m.syncTable()
+			}
+		} else {
 			m.mode = modeBrowse
 			m.editingIndex = -1
 			m.input.SetValue("")
 		}
-		m.syncTable()
 	case "esc":
 		m.mode = modeBrowse
 		m.err = nil
@@ -155,6 +168,20 @@ func (m model) updateInput(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		var cmd tea.Cmd
 		m.input, cmd = m.input.Update(msg)
 		return m, cmd
+	}
+	return m, nil
+}
+
+func (m model) updateConfirm(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
+	switch {
+	case key.Matches(msg, m.keys.Quit):
+		return m, tea.Quit
+	case key.Matches(msg, m.keys.Back):
+		m.mode = modeBrowse
+		return m, nil
+	case key.Matches(msg, m.keys.Save):
+		m.err = SaveApps(m.apps)
+		return m, tea.Quit
 	}
 	return m, nil
 }
@@ -178,6 +205,16 @@ func (m model) View() tea.View {
 		s := ui.DialogStyle.Render(content)
 		return tea.NewView(s)
 
+	case modeConfirm:
+		content := ui.DialogTitleStyle.Render("Unsaved changes") + "\n" +
+			"Quit without saving?" + "\n\n" +
+			m.help.ShortHelpView([]key.Binding{
+				m.keys.Back,
+				m.keys.Quit,
+				m.keys.Save,
+			})
+		return tea.NewView(ui.DialogStyle.Render(content))
+
 	case modeBrowse:
 		s += "\n" + m.help.View(m.keys) + "\n"
 	}
@@ -190,6 +227,7 @@ const (
 	modeBrowse mode = iota
 	modeAdd
 	modeEdit
+	modeConfirm
 )
 
 type model struct {
@@ -201,4 +239,5 @@ type model struct {
 	err          error
 	help         help.Model
 	keys         KeyMap
+	dirty        bool
 }

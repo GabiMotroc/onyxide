@@ -9,6 +9,7 @@ type KeyMap struct {
 	Delete         key.Binding
 	ToggleTerminal key.Binding
 	Edit           key.Binding
+	Back           key.Binding
 }
 
 var Keys = KeyMap{
@@ -18,6 +19,7 @@ var Keys = KeyMap{
 	Delete:         key.NewBinding(key.WithKeys("d"), key.WithHelp("d", "delete")),
 	ToggleTerminal: key.NewBinding(key.WithKeys("t"), key.WithHelp("t", "toggle")),
 	Edit:           key.NewBinding(key.WithKeys("e"), key.WithHelp("e", "edit")),
+	Back:           key.NewBinding(key.WithKeys("esc"), key.WithHelp("esc", "back")),
 }
 
 func (k KeyMap) ShortHelp() []key.Binding {
