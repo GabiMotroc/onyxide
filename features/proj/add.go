@@ -2,11 +2,14 @@ package proj
 
 import (
 	"fmt"
+	"onyxide/features/app"
 	"os"
 	"path/filepath"
 
 	"github.com/spf13/cobra"
 )
+
+var silent bool
 
 func projAdd(cmd *cobra.Command, args []string) error {
 	workDir, err := os.Getwd()
@@ -22,7 +25,18 @@ func projAdd(cmd *cobra.Command, args []string) error {
 
 }
 
-func AddProject(app string, workDir string, location string) error {
+func AddProject(appName string, workDir string, location string) error {
+	apps, err := app.LoadApps()
+	if err != nil {
+		return fmt.Errorf("loading apps: %w", err)
+	}
+	if !app.ContainsAppName(apps, appName) {
+		if silent {
+			return nil
+		}
+		return fmt.Errorf("app %q is not registered", appName)
+	}
+
 	items, err := LoadProjects()
 
 	if err != nil {
@@ -34,7 +48,7 @@ func AddProject(app string, workDir string, location string) error {
 		return err
 	}
 
-	items, err = appendProject(items, app, absoluteLocation)
+	items, err = appendProject(items, appName, absoluteLocation)
 	if err != nil {
 		return err
 	}
@@ -59,9 +73,13 @@ func getLocation(workDir string, location string) (string, error) {
 }
 
 var addCmd = &cobra.Command{
-	Use:   "add <command> <location>",
-	Short: "Add a new project, if no location is provided, the current directory will be used",
-	Long:  "Add a project with the given name.",
+	Use:   "add <command> [path]",
+	Short: "Add a project",
+	Long:  `Add a project for the given command. If no path is given, the current directory is used.`,
 	Args:  cobra.RangeArgs(1, 2),
 	RunE:  projAdd,
+}
+
+func init() {
+	addCmd.Flags().BoolVarP(&silent, "silent", "s", false, "suppress all output (used by the shell hook)")
 }

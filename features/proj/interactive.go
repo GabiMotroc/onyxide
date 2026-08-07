@@ -16,7 +16,11 @@ import (
 )
 
 func startInteractive(cmd *cobra.Command, args []string) error {
-	p := tea.NewProgram(initialModel())
+	p := tea.NewProgram(initialModel(),
+		tea.WithInput(cmd.InOrStdin()),
+		tea.WithOutput(cmd.OutOrStdout()),
+	)
+
 	m, err := p.Run()
 
 	if err != nil {
@@ -34,6 +38,7 @@ func initialModel() model {
 
 	cols := []table.Column{
 		{Title: "#", Width: 4},
+		{Title: "SCORE", Width: 5},
 		{Title: "APP_TYPE", Width: 20},
 		{Title: "LOCATION", Width: 45},
 	}
@@ -83,6 +88,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m.updateBrowser(msg)
 		case modeAdd, modeEdit:
 			return m.updateForm(msg)
+		case modeConfirm:
+			return m.updateConfirm(msg)
 		}
 	case tea.WindowSizeMsg:
 		m.table.SetWidth(msg.Width)
@@ -153,10 +160,13 @@ func (m model) updateBrowser(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	idx := m.table.Cursor()
 
 	switch {
-	case key.Matches(msg, m.keys.Quit):
+	case key.Matches(msg, m.keys.Quit), key.Matches(msg, m.keys.Back):
+		if m.dirty {
+			m.mode = modeConfirm
+			return m, nil
+		}
 		return m, tea.Quit
-	case key.Matches(msg, m.keys.Back):
-		return m, tea.Quit
+
 	case key.Matches(msg, m.keys.Add):
 		apps := m.picker.Items
 		if len(apps) == 0 {
@@ -202,7 +212,7 @@ func (m model) updateBrowser(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		if len(m.projects) == 0 {
 			break
 		}
-	
+
 		p := m.projects[idx]
 		c, terminal := openProject(p)
 		if terminal {
@@ -212,11 +222,37 @@ func (m model) updateBrowser(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 			m.err = err
 		}
 
+	case key.Matches(msg, m.keys.Increment):
+		if len(m.projects) == 0 {
+			break
+		}
+		m.projects[idx].Score += 1
+		return m.syncTable(), nil
+	case key.Matches(msg, m.keys.Decrement):
+		if len(m.projects) == 0 {
+			break
+		}
+		m.projects[idx].Score -= 1
+		return m.syncTable(), nil
 	}
 
 	var cmd tea.Cmd
 	m.table, cmd = m.table.Update(msg)
 	return m, cmd
+}
+
+func (m model) updateConfirm(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
+	switch {
+	case key.Matches(msg, m.keys.Quit):
+		return m, tea.Quit
+	case key.Matches(msg, m.keys.Back):
+		m.mode = modeBrowse
+		return m, nil
+	case key.Matches(msg, m.keys.Save):
+		m.err = SaveProjects(m.projects)
+		return m, tea.Quit
+	}
+	return m, nil
 }
 
 func (m model) View() tea.View {
@@ -249,6 +285,15 @@ func (m model) View() tea.View {
 			m.keys.Back,
 		})
 		return tea.NewView(ui.DialogStyle.Render(content))
+	case modeConfirm:
+		content := ui.DialogTitleStyle.Render("Unsaved changes") + "\n" +
+			"Quit without saving?" + "\n\n" +
+			m.help.ShortHelpView([]key.Binding{
+				m.keys.Back,
+				m.keys.Quit,
+				m.keys.Save,
+			})
+		return tea.NewView(ui.DialogStyle.Render(content))
 
 	case modeBrowse:
 		s += "\n" + m.help.View(m.keys) + "\n"
@@ -262,6 +307,7 @@ const (
 	modeBrowse mode = iota
 	modeAdd
 	modeEdit
+	modeConfirm
 )
 
 type model struct {
@@ -274,6 +320,7 @@ type model struct {
 	help         help.Model
 	keys         KeyMap
 	picker       ui.Picker
+	dirty        bool
 }
 
 func pathExists(path string) bool {

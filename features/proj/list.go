@@ -15,9 +15,9 @@ func projList(cmd *cobra.Command, args []string) error {
 
 	w := new(tabwriter.Writer)
 	w.Init(cmd.OutOrStdout(), 0, 8, 2, ' ', 0)
-	fmt.Fprintln(w, "NAME\tLOCATION")
+	fmt.Fprintln(w, "SCORE\tNAME\tLOCATION")
 	for _, item := range items {
-		fmt.Fprintf(w, "%s\t%s\n", item.AppType, item.Location)
+		fmt.Fprintf(w, "%d\t%s\t%s\n", item.Score, item.AppType, item.Location)
 	}
 	return w.Flush()
 }

@@ -22,17 +22,23 @@ func initApp(cmd *cobra.Command, args []string) error {
 }
 
 var InitCmd = &cobra.Command{
-	Use:   "init",
-	Short: "Initialize open",
-	Long:  ``,
-	Args:  cobra.ExactArgs(1),
-	RunE:  initApp,
+	Use:     "init <shell>",
+	Short:   "Print shell code to add integration",
+	Example: `eval "$(onyxide init zsh)"`,
+	Args:    cobra.ExactArgs(1),
+	RunE:    initApp,
 }
 
 var UninitCmd = &cobra.Command{
-	Use:   "uninit [shell]",
-	Short: "Print shell code to remove integration",
-	RunE: func(cmd *cobra.Command, args []string) error {
+	Use:     "uninit <shell>",
+	Short:   "Print shell code to remove integration",
+	Example: `eval "$(onyxide uninit zsh)"`,
+	Args:    cobra.ExactArgs(1),
+	RunE:    uninitApp(),
+}
+
+func uninitApp() func(cmd *cobra.Command, args []string) error {
+	return func(cmd *cobra.Command, args []string) error {
 
 		s := registry[args[0]]
 		if s == nil {
@@ -41,5 +47,5 @@ var UninitCmd = &cobra.Command{
 
 		_, err := fmt.Fprint(cmd.OutOrStdout(), s.Uninit())
 		return err
-	},
+	}
 }

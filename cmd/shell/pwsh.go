@@ -11,19 +11,21 @@ func (s *pwsh) Name() string {
 
 func (s *pwsh) Init() string {
 	return `
-Set-Alias -Name o -Value onyxide
+function o { onyxide open $args }
 
 Set-PSReadLineOption -AddToHistoryHandler {
     param($line)
-    onyxide hook --pwd $PWD.Path --raw $line
+    $parts = $line -split '\s+'
+    onyxide proj add --silent $parts[0] $parts[1]
     $true
 }
+
 `
 }
 
 func (s *pwsh) Uninit() string {
 	return `
-Remove-Alias -Name o -ErrorAction SilentlyContinue
+Remove-Item function:o -ErrorAction SilentlyContinue
 Set-PSReadLineOption -AddToHistoryHandler { param($line) $true }
 
 `

@@ -3,6 +3,7 @@ package proj
 import (
 	"onyxide/store"
 	"path/filepath"
+	"sort"
 	"strings"
 )
 
@@ -11,7 +12,14 @@ func projectLocation() string {
 }
 
 func SaveProjects(projects []Project) error {
+	sortByScoreDesc(projects)
 	return store.Save(projects, projectLocation())
+}
+
+func sortByScoreDesc(projects []Project) {
+	sort.SliceStable(projects, func(i, j int) bool {
+		return projects[i].Score > projects[j].Score
+	})
 }
 
 func LoadProjects() ([]Project, error) {
@@ -27,13 +35,13 @@ func ContainsLocation(projects []Project, location string) bool {
 	return false
 }
 
-func FirstMatchingProject(location string, projects []Project) (bool, Project) {
-	for _, project := range projects {
+func FirstMatchingProject(location string, projects []Project) (bool, int) {
+	for i, project := range projects {
 		if isLocationMatching(project, location) {
-			return true, project
+			return true, i
 		}
 	}
-	return false, Project{}
+	return false, -1
 }
 
 func AllMatchingProjects(location string, projects []Project) []Project {

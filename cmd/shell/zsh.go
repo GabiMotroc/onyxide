@@ -11,7 +11,7 @@ func (s *zsh) Name() string {
 
 func (s *zsh) Init() string {
 	return `
-alias o='onyxide'
+alias o='onyxide open'
 
 autoload -Uz add-zsh-hook
 
@@ -22,7 +22,8 @@ _mycli_preexec() {
 
 _mycli_precmd() {
   if [[ -n "$MYCLI_LAST_CMD" ]]; then
-    command onyxide hook --pwd "$MYCLI_LAST_PWD" --raw "$MYCLI_LAST_CMD"
+	local parts=("${(@z)MYCLI_LAST_CMD}")
+	command onyxide proj add --silent "${parts[1]}" "${parts[2]}" >/dev/null 2>&1 &!
     unset MYCLI_LAST_CMD
     unset MYCLI_LAST_PWD
   fi
@@ -39,5 +40,6 @@ add-zsh-hook -d preexec _mycli_preexec
 add-zsh-hook -d precmd _mycli_precmd
 unfunction _mycli_preexec _mycli_precmd 2>/dev/null
 unset MYCLI_LAST_CMD
+unalias o 2>/dev/null
 `
 }
